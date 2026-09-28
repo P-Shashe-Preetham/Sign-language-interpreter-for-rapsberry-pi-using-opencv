@@ -15,9 +15,21 @@ except ImportError:
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Real-time Sign Language Recognition")
+    parser.add_argument(
+        "-s", "--source",
+        default=str(config.CAMERA_SOURCE),
+        help="Camera source: USB device index (e.g. 0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video or rtsp://...)"
+    )
+    args = parser.parse_args()
+
+    cam_source = int(args.source) if args.source.isdigit() else args.source
+
     print("=" * 60)
     print(" REAL-TIME SIGN LANGUAGE RECOGNITION (Raspberry Pi 4B) ")
     print("=" * 60)
+    print(f"[INFO] Connecting to camera source: {cam_source}")
 
     # Check if model exists
     if not config.MODEL_PATH.exists() or not config.LABEL_ENCODER_PATH.exists():
@@ -35,13 +47,15 @@ def main():
     tts = TTSEngine(enabled=config.ENABLE_TTS)
 
     # Initialize Camera
-    cap = cv2.VideoCapture(config.CAMERA_INDEX)
+    cap = cv2.VideoCapture(cam_source)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
 
     if not cap.isOpened():
-        print(f"[ERROR] Could not open camera at index {config.CAMERA_INDEX}.")
+        print(f"[ERROR] Could not open camera at: {cam_source}")
         return
+
 
     # Buffer for temporal smoothing to avoid rapid flickering
     prediction_buffer = deque(maxlen=config.SMOOTHING_BUFFER_SIZE)

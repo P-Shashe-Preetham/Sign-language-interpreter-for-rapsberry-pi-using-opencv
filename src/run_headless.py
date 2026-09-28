@@ -81,9 +81,28 @@ def start_web_server(port: int = 8080):
 def main():
     global latest_jpeg
 
+    import argparse
+    parser = argparse.ArgumentParser(description="Headless Sign Language Recognition with IP/USB Camera support")
+    parser.add_argument(
+        "-s", "--source",
+        default=str(config.CAMERA_SOURCE),
+        help="Camera source: USB device index (e.g. 0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video or rtsp://...)"
+    )
+    parser.add_argument(
+        "-p", "--port",
+        type=int,
+        default=8080,
+        help="Port for live browser preview stream (default: 8080)"
+    )
+    args = parser.parse_args()
+
+    # Determine camera source type
+    cam_source = int(args.source) if args.source.isdigit() else args.source
+
     print("=" * 60)
     print(" HEADLESS SIGN LANGUAGE RECOGNITION (Terminal + Web Stream) ")
     print("=" * 60)
+    print(f"[INFO] Connecting to camera source: {cam_source}")
 
     if not config.MODEL_PATH.exists() or not config.LABEL_ENCODER_PATH.exists():
         print(f"[ERROR] Trained model not found at {config.MODEL_PATH}.")
@@ -96,16 +115,21 @@ def main():
     tracker = HandTracker()
     tts = TTSEngine(enabled=config.ENABLE_TTS)
 
-    cap = cv2.VideoCapture(config.CAMERA_INDEX)
+    cap = cv2.VideoCapture(cam_source)
+    # Reduce buffer latency for network streams
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
 
     if not cap.isOpened():
-        print(f"[ERROR] Could not open camera at index {config.CAMERA_INDEX}.")
+        print(f"[ERROR] Could not open camera at: {cam_source}")
+        if isinstance(cam_source, str) and (cam_source.startswith("http") or cam_source.startswith("rtsp")):
+            print("  Make sure your IP camera app is running and your laptop/Pi can ping the camera IP.")
         return
 
     # Start browser stream
-    start_web_server(port=8080)
+    start_web_server(port=args.port)
+
 
     prediction_buffer = deque(maxlen=config.SMOOTHING_BUFFER_SIZE)
     last_confirmed_sign = "WAITING..."

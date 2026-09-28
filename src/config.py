@@ -30,11 +30,20 @@ SIGNS = [
     "FIST"
 ]
 
-# Camera Settings (Optimized for Raspberry Pi 4B)
-CAMERA_INDEX = 0
+# Camera Settings (Supports USB camera index or IP Camera RTSP/HTTP/MJPEG URL)
+# Examples:
+#   Local USB: 0
+#   Phone IP Webcam: "http://192.168.1.50:8080/video"
+#   DroidCam: "http://192.168.1.50:4747/video"
+#   RTSP: "rtsp://admin:123456@192.168.1.50:554/stream"
+CAMERA_SOURCE = os.getenv("CAMERA_SOURCE", "0")
+if CAMERA_SOURCE.isdigit():
+    CAMERA_SOURCE = int(CAMERA_SOURCE)
+
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 FPS_TARGET = 30
+
 
 # MediaPipe Hand Tracking Parameters
 MAX_NUM_HANDS = 1

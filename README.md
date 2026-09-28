@@ -104,7 +104,11 @@ python -m src.train_model
 #### Option A: Headless Mode on Raspberry Pi (Recommended)
 Since the Raspberry Pi runs headless without a monitor, run:
 ```bash
-python -m src.run_headless
+# Using a local USB camera (index 0)
+python3 -m src.run_headless
+
+# OR using an IP Camera / Phone Webcam:
+python3 -m src.run_headless --source "http://192.168.1.50:8080/video"
 ```
 - **Terminal:** Prints live recognized signs, confidence, and FPS directly in your SSH shell.
 - **Voice:** Speaks the recognized sign through the Pi's audio output / USB speaker.
@@ -116,9 +120,41 @@ python -m src.run_headless
 
 #### Option B: GUI Window Mode (On Laptop or Pi with Monitor)
 ```bash
+# Local USB camera:
 python -m src.realtime_inference
+
+# OR IP Camera:
+python -m src.realtime_inference --source "http://192.168.1.50:8080/video"
 ```
 Opens an OpenCV window showing real-time hand skeleton, bounding box, recognized text, and live FPS counter. Press **`Q`** to quit.
+
+---
+
+## 📱 Using Your Phone as an IP Camera
+
+If you do not have a physical USB webcam for the Raspberry Pi, you can turn your smartphone into an IP camera:
+
+1. **Install an IP Webcam app on your phone:**
+   - **Android:** Download **"IP Webcam"** by Pavel Khlebovich from Google Play Store.
+   - **iOS / Android:** Download **"DroidCam"** or **"iVCam"**.
+2. **Start the server in the app:**
+   - Open the app and tap **"Start Server"**.
+   - Note the URL displayed on the phone screen (e.g. `http://192.168.137.45:8080` or `http://192.168.1.50:4747`).
+3. **Run the script with the IP Camera stream URL:**
+   - For **IP Webcam** (Android): add `/video` to the URL:
+     ```bash
+     python3 -m src.run_headless --source "http://<PHONE_IP>:8080/video"
+     ```
+   - For **DroidCam**:
+     ```bash
+     python3 -m src.run_headless --source "http://<PHONE_IP>:4747/video"
+     ```
+   - For **RTSP security camera**:
+     ```bash
+     python3 -m src.run_headless --source "rtsp://username:password@<CAMERA_IP>:554/stream"
+     ```
+   - You can also set `CAMERA_SOURCE` in `src/config.py` permanently!
+
 
 ---
 

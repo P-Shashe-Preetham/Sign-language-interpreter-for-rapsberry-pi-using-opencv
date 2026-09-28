@@ -24,6 +24,17 @@ def main():
     print("  [Q]     : Quit and save")
     print("=" * 60)
 
+    import argparse
+    parser = argparse.ArgumentParser(description="Sign Language Data Collector with IP/USB Camera support")
+    parser.add_argument(
+        "-s", "--source",
+        default=str(config.CAMERA_SOURCE),
+        help="Camera source: USB device index (e.g. 0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video or rtsp://...)"
+    )
+    args = parser.parse_args()
+
+    cam_source = int(args.source) if args.source.isdigit() else args.source
+
     # Prepare CSV file
     file_exists = config.CSV_PATH.exists()
     header = ["label"] + [f"feat_{i}" for i in range(63)]
@@ -36,13 +47,15 @@ def main():
 
     # Initialize tracker and camera
     tracker = HandTracker()
-    cap = cv2.VideoCapture(config.CAMERA_INDEX)
+    cap = cv2.VideoCapture(cam_source)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
 
     if not cap.isOpened():
-        print(f"[ERROR] Could not open camera at index {config.CAMERA_INDEX}.")
+        print(f"[ERROR] Could not open camera at: {cam_source}")
         return
+
 
     sign_idx = 0
     recording = False
