@@ -1,0 +1,135 @@
+# Real-Time Sign Language Recognition Using Raspberry Pi 4B
+
+An embedded computer vision and machine learning project that detects and translates sign language gestures in real time using a camera on a Raspberry Pi 4B.
+
+---
+
+## 🎯 Architecture & Pipeline
+
+```
+Camera (USB / CSI)
+   │
+   ▼
+OpenCV (Frame Capture & Preprocessing)
+   │
+   ▼
+MediaPipe Hands (21 3D Landmark Detection)
+   │
+   ▼
+Feature Normalization (Translation & Scale Invariant)
+   │  • Shift wrist to (0,0,0)
+   │  • Scale by max Euclidean distance
+   ▼
+Lightweight ML Classifier (RandomForest / <1ms Latency)
+   │
+   ▼
+Temporal Consensus Smoothing (De-bouncing)
+   │
+   ├──▶ Visual HUD Overlay (Bounding Box, Landmarks, Text)
+   ├──▶ Web Stream (View live feed via Browser on Port 8080)
+   └──▶ Text-to-Speech (TTS Voice Announcement via pyttsx3 / espeak)
+```
+
+---
+
+## 📁 Project Directory Structure
+
+```
+Proto-backups/
+├── dataset/
+│   └── landmarks.csv               # Extracted landmark feature vectors & labels
+├── models/
+│   ├── sign_classifier.joblib      # Trained lightweight model
+│   └── labels.joblib               # Label encoder mappings
+├── src/
+│   ├── __init__.py
+│   ├── config.py                   # Central settings, classes, thresholds
+│   ├── hand_tracker.py             # MediaPipe tracker & normalization
+│   ├── collect_data.py             # Interactive dataset collection tool
+│   ├── train_model.py              # ML model trainer & evaluator
+│   ├── tts_engine.py               # Asynchronous non-blocking TTS
+│   ├── realtime_inference.py       # Desktop GUI real-time runner
+│   └── run_headless.py             # Headless Pi runner (Terminal + Web Browser Stream)
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 🚀 Quick Start Guide
+
+### 1. Installation
+
+#### On Windows (or Raspberry Pi with Python venv):
+```bash
+pip install -r requirements.txt
+```
+
+#### On Raspberry Pi 4B (Debian Bookworm):
+```bash
+sudo apt update
+sudo apt install -y python3-opencv python3-pip espeak
+pip install --break-system-packages -r requirements.txt
+```
+
+---
+
+### 2. Dataset Collection (Optional / Custom Signs)
+To record your own hand gestures using your webcam:
+```bash
+python -m src.collect_data
+```
+- Press **`SPACE`** to start/pause recording samples for the active sign.
+- Press **`N`** for next sign, **`P`** for previous sign.
+- Press **`Q`** to exit.
+- Frames are automatically extracted into `dataset/landmarks.csv`.
+
+---
+
+### 3. Training the Model
+Train the lightweight classifier:
+```bash
+python -m src.train_model
+```
+> **Tip:** To test the pipeline immediately without manual recording, run with `--synthetic`:
+> ```bash
+> python -m src.train_model --synthetic
+> ```
+> This creates a baseline dataset, trains the model, and saves it to `models/sign_classifier.joblib`.
+
+---
+
+### 4. Running Real-Time Recognition
+
+#### Option A: Headless Mode on Raspberry Pi (Recommended)
+Since the Raspberry Pi runs headless without a monitor, run:
+```bash
+python -m src.run_headless
+```
+- **Terminal:** Prints live recognized signs, confidence, and FPS directly in your SSH shell.
+- **Voice:** Speaks the recognized sign through the Pi's audio output / USB speaker.
+- **Browser Live View:** Open any web browser on your laptop and navigate to:
+  ```
+  http://<PI_IP_ADDRESS>:8080
+  ```
+  You will see the live camera feed with skeleton tracking and recognized sign overlays!
+
+#### Option B: GUI Window Mode (On Laptop or Pi with Monitor)
+```bash
+python -m src.realtime_inference
+```
+Opens an OpenCV window showing real-time hand skeleton, bounding box, recognized text, and live FPS counter. Press **`Q`** to quit.
+
+---
+
+## ⚙️ Predefined Signs (Customizable in `src/config.py`)
+1. `HELLO`
+2. `THANK_YOU`
+3. `YES`
+4. `NO`
+5. `I_LOVE_YOU`
+6. `PEACE`
+7. `OK`
+8. `THUMBS_UP`
+9. `THUMBS_DOWN`
+10. `FIST`
