@@ -27,13 +27,12 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Sign Language Data Collector with IP/USB Camera support")
     parser.add_argument(
-        "-s", "--source",
+        "-s", "--source", "-c", "--camera", "-u", "--url",
+        dest="source",
         default=str(config.CAMERA_SOURCE),
-        help="Camera source: USB device index (e.g. 0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video or rtsp://...)"
+        help="Camera source: USB device index (0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video)"
     )
     args = parser.parse_args()
-
-    cam_source = int(args.source) if args.source.isdigit() else args.source
 
     # Prepare CSV file
     file_exists = config.CSV_PATH.exists()
@@ -47,13 +46,16 @@ def main():
 
     # Initialize tracker and camera
     tracker = HandTracker()
-    cap = cv2.VideoCapture(cam_source)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
+    cap, cam_source = config.open_camera(args.source, config.FRAME_WIDTH, config.FRAME_HEIGHT)
+    print(f"[INFO] Connecting to camera source: {cam_source}")
 
     if not cap.isOpened():
         print(f"[ERROR] Could not open camera at: {cam_source}")
+        if isinstance(cam_source, str) and (cam_source.startswith("http") or cam_source.startswith("rtsp")):
+            print("\n[TROUBLESHOOTING IP WEBCAM]:")
+            print("1. Did you include '/video' in the URL? E.g. http://<IP>:8080/video")
+            print("2. Are your phone and Raspberry Pi connected to the same Wi-Fi?")
+            print("3. Test the connection from Pi terminal: curl -I " + cam_source)
         return
 
 

@@ -84,25 +84,22 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Headless Sign Language Recognition with IP/USB Camera support")
     parser.add_argument(
-        "-s", "--source",
+        "-s", "--source", "-c", "--camera", "-u", "--url",
+        dest="source",
         default=str(config.CAMERA_SOURCE),
-        help="Camera source: USB device index (e.g. 0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video or rtsp://...)"
+        help="Camera source: USB device index (0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video)"
     )
     parser.add_argument(
         "-p", "--port",
         type=int,
-        default=8080,
-        help="Port for live browser preview stream (default: 8080)"
+        default=8000,
+        help="Port for live browser preview stream (default: 8000)"
     )
     args = parser.parse_args()
-
-    # Determine camera source type
-    cam_source = int(args.source) if args.source.isdigit() else args.source
 
     print("=" * 60)
     print(" HEADLESS SIGN LANGUAGE RECOGNITION (Terminal + Web Stream) ")
     print("=" * 60)
-    print(f"[INFO] Connecting to camera source: {cam_source}")
 
     if not config.MODEL_PATH.exists() or not config.LABEL_ENCODER_PATH.exists():
         print(f"[ERROR] Trained model not found at {config.MODEL_PATH}.")
@@ -115,16 +112,16 @@ def main():
     tracker = HandTracker()
     tts = TTSEngine(enabled=config.ENABLE_TTS)
 
-    cap = cv2.VideoCapture(cam_source)
-    # Reduce buffer latency for network streams
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.FRAME_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.FRAME_HEIGHT)
+    cap, cam_source = config.open_camera(args.source, config.FRAME_WIDTH, config.FRAME_HEIGHT)
+    print(f"[INFO] Connecting to camera source: {cam_source}")
 
     if not cap.isOpened():
         print(f"[ERROR] Could not open camera at: {cam_source}")
         if isinstance(cam_source, str) and (cam_source.startswith("http") or cam_source.startswith("rtsp")):
-            print("  Make sure your IP camera app is running and your laptop/Pi can ping the camera IP.")
+            print("\n[TROUBLESHOOTING IP WEBCAM]:")
+            print("1. Did you include '/video' in the URL? E.g. http://<IP>:8080/video")
+            print("2. Are your phone and Raspberry Pi connected to the same Wi-Fi?")
+            print("3. Test the connection from Pi terminal: curl -I " + cam_source)
         return
 
     # Start browser stream

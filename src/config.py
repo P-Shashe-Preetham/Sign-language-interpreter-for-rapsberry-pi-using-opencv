@@ -40,9 +40,50 @@ CAMERA_SOURCE = os.getenv("CAMERA_SOURCE", "0")
 if CAMERA_SOURCE.isdigit():
     CAMERA_SOURCE = int(CAMERA_SOURCE)
 
+def sanitize_camera_source(source):
+    """Normalize and auto-fix camera sources (especially IP webcam URLs)."""
+    if isinstance(source, int):
+        return source
+    if isinstance(source, str):
+        source = source.strip().strip("'\"")
+        if source.isdigit():
+            return int(source)
+        # If user passed an IP webcam URL without the stream endpoint:
+        # e.g. "http://192.168.1.50:8080" -> needs "/video"
+        if source.startswith("http://") or source.startswith("https://"):
+            if ":8080" in source and not any(source.endswith(x) for x in ["/video", "/mjpeg", ".mjpg", "/shot.jpg"]):
+                source = source.rstrip("/") + "/video"
+            elif ":4747" in source and not any(source.endswith(x) for x in ["/video", "/mjpegfeed"]):
+                source = source.rstrip("/") + "/video"
+    return source
+
+CAMERA_SOURCE = sanitize_camera_source(CAMERA_SOURCE)
+
+def open_camera(source, width=640, height=480):
+    """Robustly opens a camera source with low-latency settings."""
+    import cv2
+    clean_src = sanitize_camera_source(source)
+    
+    # Try default backend first
+    cap = cv2.VideoCapture(clean_src)
+    
+    # If network stream fails to open, try with CAP_FFMPEG backend
+    if not cap.isOpened() and isinstance(clean_src, str) and (clean_src.startswith("http") or clean_src.startswith("rtsp")):
+        try:
+            cap = cv2.VideoCapture(clean_src, cv2.CAP_FFMPEG)
+        except Exception:
+            pass
+            
+    if cap.isOpened():
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    return cap, clean_src
+
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 FPS_TARGET = 30
+
 
 
 # MediaPipe Hand Tracking Parameters
