@@ -84,10 +84,17 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Headless Sign Language Recognition with IP/USB Camera support")
     parser.add_argument(
+        "positional_source",
+        nargs="?",
+        default=None,
+        help="Optional positional camera source"
+    )
+    parser.add_argument(
         "-s", "--source", "-c", "--camera", "-u", "--url",
+        "-source", "--src",
         dest="source",
-        default=str(config.CAMERA_SOURCE),
-        help="Camera source: USB device index (0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video)"
+        default=None,
+        help="Camera source: USB device index (0, 1) or IP camera URL"
     )
     parser.add_argument(
         "-p", "--port",
@@ -95,7 +102,15 @@ def main():
         default=8000,
         help="Port for live browser preview stream (default: 8000)"
     )
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+    cam_input = args.source or args.positional_source
+    if not cam_input and unknown:
+        for u in unknown:
+            if u.startswith("http") or u.startswith("rtsp") or u.isdigit():
+                cam_input = u
+                break
+    if not cam_input:
+        cam_input = str(config.CAMERA_SOURCE)
 
     print("=" * 60)
     print(" HEADLESS SIGN LANGUAGE RECOGNITION (Terminal + Web Stream) ")
@@ -112,7 +127,7 @@ def main():
     tracker = HandTracker()
     tts = TTSEngine(enabled=config.ENABLE_TTS)
 
-    cap, cam_source = config.open_camera(args.source, config.FRAME_WIDTH, config.FRAME_HEIGHT)
+    cap, cam_source = config.open_camera(cam_input, config.FRAME_WIDTH, config.FRAME_HEIGHT)
     print(f"[INFO] Connecting to camera source: {cam_source}")
 
     if not cap.isOpened():

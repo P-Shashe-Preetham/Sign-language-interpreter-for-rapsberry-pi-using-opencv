@@ -18,12 +18,27 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Real-time Sign Language Recognition")
     parser.add_argument(
-        "-s", "--source", "-c", "--camera", "-u", "--url",
-        dest="source",
-        default=str(config.CAMERA_SOURCE),
-        help="Camera source: USB device index (0, 1) or IP camera URL (e.g. http://192.168.1.50:8080/video)"
+        "positional_source",
+        nargs="?",
+        default=None,
+        help="Optional positional camera source"
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "-s", "--source", "-c", "--camera", "-u", "--url",
+        "-source", "--src",
+        dest="source",
+        default=None,
+        help="Camera source: USB device index (0, 1) or IP camera URL"
+    )
+    args, unknown = parser.parse_known_args()
+    cam_input = args.source or args.positional_source
+    if not cam_input and unknown:
+        for u in unknown:
+            if u.startswith("http") or u.startswith("rtsp") or u.isdigit():
+                cam_input = u
+                break
+    if not cam_input:
+        cam_input = str(config.CAMERA_SOURCE)
 
     print("=" * 60)
     print(" REAL-TIME SIGN LANGUAGE RECOGNITION (Raspberry Pi 4B) ")
@@ -41,7 +56,7 @@ def main():
     print(f"[INFO] Classes: {list(label_encoder.classes_)}")
 
     # Initialize Camera
-    cap, cam_source = config.open_camera(args.source, config.FRAME_WIDTH, config.FRAME_HEIGHT)
+    cap, cam_source = config.open_camera(cam_input, config.FRAME_WIDTH, config.FRAME_HEIGHT)
     print(f"[INFO] Connecting to camera source: {cam_source}")
 
     if not cap.isOpened():
