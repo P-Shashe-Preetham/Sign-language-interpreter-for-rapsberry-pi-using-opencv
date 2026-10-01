@@ -16,19 +16,25 @@ CSV_PATH = DATASET_DIR / "landmarks.csv"
 MODEL_PATH = MODELS_DIR / "sign_classifier.joblib"
 LABEL_ENCODER_PATH = MODELS_DIR / "labels.joblib"
 
-# Predefined Gestures / Signs (10 Predefined Classes)
-SIGNS = [
+# Predefined Gestures & Full ASL Alphabet (26 Letters + Key Conversational Signs)
+ASL_ALPHABET = [
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+    "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
+    "U", "V", "W", "X", "Y", "Z"
+]
+
+CONVERSATIONAL_SIGNS = [
     "HELLO",
     "THANK_YOU",
     "YES",
     "NO",
     "I_LOVE_YOU",
-    "PEACE",
-    "OK",
     "THUMBS_UP",
-    "THUMBS_DOWN",
-    "FIST"
+    "THUMBS_DOWN"
 ]
+
+# Total 33 Classes (Full ASL Alphabet + Common Everyday Signs)
+SIGNS = ASL_ALPHABET + CONVERSATIONAL_SIGNS
 
 # Camera Settings (Supports USB camera index or IP Camera RTSP/HTTP/MJPEG URL)
 # Examples:

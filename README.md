@@ -158,14 +158,17 @@ If you do not have a physical USB webcam for the Raspberry Pi, you can turn your
 
 ---
 
-## ⚙️ Predefined Signs (Customizable in `src/config.py`)
-1. `HELLO`
-2. `THANK_YOU`
-3. `YES`
-4. `NO`
-5. `I_LOVE_YOU`
-6. `PEACE`
-7. `OK`
-8. `THUMBS_UP`
-9. `THUMBS_DOWN`
-10. `FIST`
+## ⚙️ Supported Signs & Alphabet (33 Classes)
+
+### 🔤 Full ASL Alphabet (26 Letters)
+`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`
+
+### 💬 Key Conversational Signs
+* `HELLO`
+* `THANK_YOU`
+* `YES`
+* `NO`
+* `I_LOVE_YOU`
+* `THUMBS_UP`
+* `THUMBS_DOWN`
+
