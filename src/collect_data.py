@@ -92,12 +92,18 @@ def main():
 
     TARGET_SAMPLES = 100
 
+    drop_count = 0
     try:
         while True:
             ret, frame = cap.read()
             if not ret:
-                print("[WARNING] Failed to grab frame.")
-                break
+                drop_count += 1
+                if drop_count > 30:
+                    print("\n[WARNING] Camera stream disconnected (30 consecutive dropped frames).")
+                    break
+                time.sleep(0.03)
+                continue
+            drop_count = 0
 
             # Flip horizontally for natural mirror feel
             frame = cv2.flip(frame, 1)

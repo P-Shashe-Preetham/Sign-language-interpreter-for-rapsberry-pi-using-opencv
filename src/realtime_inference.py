@@ -85,12 +85,18 @@ def main():
 
     print("[INFO] Starting real-time recognition loop. Press 'q' to quit.")
 
+    drop_count = 0
     try:
         while True:
             ret, frame = cap.read()
             if not ret:
-                print("[WARNING] Frame capture failed.")
-                break
+                drop_count += 1
+                if drop_count > 30:
+                    print("\n[WARNING] Camera stream disconnected (30 consecutive dropped frames).")
+                    break
+                time.sleep(0.03)
+                continue
+            drop_count = 0
 
             # Mirror image for intuitive interaction
             frame = cv2.flip(frame, 1)
