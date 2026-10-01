@@ -158,17 +158,10 @@ If you do not have a physical USB webcam for the Raspberry Pi, you can turn your
 
 ---
 
-## ⚙️ Supported Signs & Alphabet (33 Classes)
+## ⚙️ Supported Signs: Full ASL Alphabet (26 Letters: A - Z)
 
-### 🔤 Full ASL Alphabet (26 Letters)
+The system translates fingerspelling for all 26 letters of the American Sign Language (ASL) alphabet:
+
 `A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `L`, `M`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, `W`, `X`, `Y`, `Z`
 
-### 💬 Key Conversational Signs
-* `HELLO`
-* `THANK_YOU`
-* `YES`
-* `NO`
-* `I_LOVE_YOU`
-* `THUMBS_UP`
-* `THUMBS_DOWN`
 

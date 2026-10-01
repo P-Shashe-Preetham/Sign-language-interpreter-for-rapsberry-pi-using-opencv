@@ -119,11 +119,13 @@ def build_pose(
         skel[12] = touch_point + np.array([0.01, 0.0, 0.0])
 
     if special == "PEACE":
-        # Spread index and middle into a V
-        skel[7] += np.array([-0.06, 0.0, 0.0])
-        skel[8] += np.array([-0.12, 0.0, 0.0])
-        skel[11] += np.array([0.06, 0.0, 0.0])
-        skel[12] += np.array([0.12, 0.0, 0.0])
+        # Spread index and middle into a prominent V shape
+        skel[6] += np.array([-0.04, 0.0, 0.0])
+        skel[7] += np.array([-0.09, 0.0, 0.0])
+        skel[8] += np.array([-0.16, 0.0, 0.0])
+        skel[10] += np.array([0.04, 0.0, 0.0])
+        skel[11] += np.array([0.09, 0.0, 0.0])
+        skel[12] += np.array([0.16, 0.0, 0.0])
 
     coords = np.array([skel[i] for i in range(21)], dtype=np.float32)
     return coords
@@ -252,12 +254,12 @@ def get_pose_for_sign(sign_name: str) -> np.ndarray:
         g_pose = get_pose_for_sign("G")
         return rotate_3d(g_pose, angle_x=np.radians(80))
     elif s == "R":
-        # Index & middle crossed
+        # Index & middle crossed (middle crosses over index to the left)
         skel = build_pose(thumb="folded", index="extended", middle="extended", ring="curled", pinky="curled")
-        skel[11] += np.array([-0.08, 0.0, -0.03])
-        skel[12] += np.array([-0.16, 0.0, -0.05])
-        skel[7] += np.array([0.04, 0.0, 0.02])
-        skel[8] += np.array([0.08, 0.0, 0.04])
+        skel[7] = np.array([-0.08, -0.75, 0.02])
+        skel[8] = np.array([-0.05, -0.90, 0.04])
+        skel[11] = np.array([-0.18, -0.78, -0.04])
+        skel[12] = np.array([-0.22, -0.93, -0.06])
         return skel
     elif s == "S":
         # Closed fist with thumb wrapped across knuckles
@@ -270,10 +272,12 @@ def get_pose_for_sign(sign_name: str) -> np.ndarray:
         skel[4] = np.array([-0.08, -0.32, -0.08])
         return skel
     elif s == "U":
-        # Index & middle straight up and touching together
+        # Index & middle parallel straight up, touching together
         skel = build_pose(thumb="folded", index="extended", middle="extended", ring="curled", pinky="curled")
-        skel[5:9, 0] = np.linspace(-0.04, -0.04, 4)
-        skel[9:13, 0] = np.linspace(0.01, 0.01, 4)
+        skel[7] = np.array([-0.07, -0.77, 0.01])
+        skel[8] = np.array([-0.05, -0.92, 0.01])
+        skel[11] = np.array([0.02, -0.83, 0.01])
+        skel[12] = np.array([0.01, -0.98, 0.01])
         return skel
     elif s == "V":
         # Peace / V sign (index and middle spread apart)
@@ -308,32 +312,6 @@ def get_pose_for_sign(sign_name: str) -> np.ndarray:
         # Index pointing forward tracing Z
         skel = build_pose(thumb="folded", index="extended", middle="curled", ring="curled", pinky="curled")
         return rotate_3d(skel, angle_y=np.radians(25), angle_z=np.radians(10))
-
-    # ---------------------------------------------
-    # 2. CONVERSATIONAL SIGNS
-    # ---------------------------------------------
-    elif s == "HELLO":
-        return build_pose(thumb="extended", index="extended", middle="extended", ring="extended", pinky="extended")
-    elif s == "THANK_YOU":
-        coords = build_pose(thumb="folded", index="extended", middle="extended", ring="extended", pinky="extended")
-        return rotate_3d(coords, angle_x=np.radians(35))
-    elif s == "THUMBS_UP":
-        return build_pose(thumb="up", index="curled", middle="curled", ring="curled", pinky="curled")
-    elif s == "THUMBS_DOWN":
-        return build_pose(thumb="down", index="curled", middle="curled", ring="curled", pinky="curled")
-    elif s == "I_LOVE_YOU":
-        return build_pose(thumb="extended", index="extended", middle="curled", ring="curled", pinky="extended")
-    elif s == "YES":
-        base = build_pose(thumb="folded", index="curled", middle="curled", ring="curled", pinky="curled")
-        return rotate_3d(base, angle_x=np.radians(35))
-    elif s == "NO":
-        return build_pose(thumb="snap_no", index="curled", middle="curled", ring="curled", pinky="curled")
-    elif s == "PEACE":
-        return get_pose_for_sign("V")
-    elif s == "OK":
-        return get_pose_for_sign("F")
-    elif s == "FIST":
-        return get_pose_for_sign("S")
     else:
         return build_pose()
 
