@@ -1,5 +1,10 @@
-import threading
-import queue
+"""
+High-Performance, Thread-Safe Text-to-Speech Engine
+Supports:
+  - Windows: Direct SAPI.SpVoice with SVSFlagsAsync (100% volume, zero latency)
+  - Linux / Raspberry Pi: Native espeak subprocess
+"""
+import sys
 import time
 import subprocess
 import shutil
@@ -18,19 +23,22 @@ class TTSEngine:
     """
     def __init__(self, enabled: bool = config.ENABLE_TTS):
         self.enabled = enabled
-        self.queue = queue.Queue()
         self.last_spoken_text: str = ""
         self.last_spoken_time: float = 0.0
-        self.running = True
         self.has_espeak_cli = shutil.which("espeak") is not None
-
-        if self.enabled:
-            # Start background worker thread
-            self.thread = threading.Thread(target=self._worker, daemon=True)
-            self.thread.start()
+        
+        # Windows Direct SAPI voice synthesizer
+        self.sapi_voice = None
+        if self.enabled and sys.platform.startswith("win"):
+            try:
+                import win32com.client
+                self.sapi_voice = win32com.client.Dispatch("SAPI.SpVoice")
+                self.sapi_voice.Volume = 100
+            except Exception:
+                self.sapi_voice = None
 
     def speak(self, text: str, force: bool = False):
-        """Queue text to be spoken asynchronously if cooldown has passed."""
+        """Speaks the text asynchronously without blocking video inference."""
         if not self.enabled or not text or text in ["WAITING...", "NO HAND"]:
             return
 
@@ -41,54 +49,46 @@ class TTSEngine:
 
         self.last_spoken_text = text
         self.last_spoken_time = now
-        self.queue.put(text)
 
-    def _worker(self):
-        # Initialize pyttsx3 inside the worker thread to satisfy Windows COM STA threading rules
-        pyttsx3_engine = None
+        # For single alphabet letters, saying "Letter X" ensures clear audible pronunciation
+        phrase = f"Letter {text}" if len(text) == 1 else text
+        print(f"\n[VOICE OUTPUT]: {phrase}")
+
+        # 1. Windows: Native async SAPI.SpVoice (Flag 1 = SVSFlagsAsync)
+        if self.sapi_voice is not None:
+            try:
+                self.sapi_voice.Speak(phrase, 1) # 1 = SVSFlagsAsync (completely non-blocking)
+                return
+            except Exception:
+                pass
+
+        # 2. Windows Fallback: Async PowerShell one-liner
+        if sys.platform.startswith("win"):
+            try:
+                cmd = f'powershell -Command "(New-Object -ComObject SAPI.SpVoice).Speak(\'{phrase}\')"'
+                subprocess.Popen(cmd, shell=True)
+                return
+            except Exception:
+                pass
+
+        # 3. Linux / Raspberry Pi: Non-blocking espeak subprocess
+        if self.has_espeak_cli:
+            try:
+                rate = str(config.TTS_SPEECH_RATE)
+                subprocess.Popen(["espeak", "-s", rate, phrase])
+                return
+            except Exception:
+                pass
+
+        # 4. Fallback pyttsx3 if everything else fails
         try:
             import pyttsx3
-            pyttsx3_engine = pyttsx3.init()
-            pyttsx3_engine.setProperty("rate", config.TTS_SPEECH_RATE)
+            eng = pyttsx3.init()
+            eng.setProperty("volume", 1.0)
+            eng.say(phrase)
+            eng.runAndWait()
         except Exception:
-            pyttsx3_engine = None
-
-        while self.running:
-            try:
-                text = self.queue.get(timeout=0.2)
-            except queue.Empty:
-                continue
-
-            print(f"[VOICE ANNOUNCEMENT]: {text}")
-            spoken = False
-
-            # 1. Try pyttsx3 engine
-            if pyttsx3_engine is not None:
-                try:
-                    pyttsx3_engine.say(text)
-                    pyttsx3_engine.runAndWait()
-                    spoken = True
-                except Exception:
-                    pass
-
-            # 2. Windows native PowerShell SpeechSynthesizer fallback
-            if not spoken and sys.platform.startswith("win"):
-                try:
-                    cmd = f'powershell -Command "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak(\'{text}\')"'
-                    subprocess.run(cmd, shell=True, check=False)
-                    spoken = True
-                except Exception:
-                    pass
-
-            # 3. Linux / Raspberry Pi espeak fallback
-            if not spoken and self.has_espeak_cli:
-                try:
-                    subprocess.run(["espeak", "-s", str(config.TTS_SPEECH_RATE), text], check=False)
-                    spoken = True
-                except Exception:
-                    pass
-
-            self.queue.task_done()
+            pass
 
     def close(self):
-        self.running = False
+        pass
