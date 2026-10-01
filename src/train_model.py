@@ -17,33 +17,18 @@ except ImportError:
 
 
 def generate_synthetic_dataset():
-    """Generates synthetic baseline data for quick end-to-end testing if needed."""
-    print("[INFO] Generating synthetic landmark dataset for initial testing...")
-    np.random.seed(42)
-    header = ["label"] + [f"feat_{i}" for i in range(63)]
-    rows = []
-    
-    for sign in config.SIGNS:
-        # Base signature vector for this sign
-        base_features = np.random.uniform(-0.8, 0.8, 63)
-        # Generate 60 variations with small noise
-        for _ in range(60):
-            noisy = base_features + np.random.normal(0, 0.05, 63)
-            # Re-normalize
-            noisy = noisy / (np.max(np.abs(noisy)) + 1e-6)
-            rows.append([sign] + list(noisy))
-
-    with open(config.CSV_PATH, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        writer.writerows(rows)
-    print(f"[INFO] Synthetic dataset generated with {len(rows)} samples at {config.CSV_PATH}")
+    """Generates anatomically authentic baseline dataset for initial training."""
+    try:
+        from .generate_anatomical_dataset import generate_anatomical_dataset
+    except ImportError:
+        from generate_anatomical_dataset import generate_anatomical_dataset
+    generate_anatomical_dataset(samples_per_class=150)
 
 
 def train_model():
     if not config.CSV_PATH.exists() or config.CSV_PATH.stat().st_size == 0:
         print(f"[WARNING] No dataset found at {config.CSV_PATH}.")
-        print("[INFO] Generating synthetic initial dataset so you can run the pipeline immediately.")
+        print("[INFO] Generating anatomical ground-truth dataset so you can run the pipeline immediately.")
         generate_synthetic_dataset()
 
     print(f"[INFO] Loading dataset from: {config.CSV_PATH}")
