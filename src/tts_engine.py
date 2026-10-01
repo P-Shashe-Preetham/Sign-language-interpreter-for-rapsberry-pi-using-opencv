@@ -22,30 +22,16 @@ class TTSEngine:
         self.last_spoken_text: str = ""
         self.last_spoken_time: float = 0.0
         self.running = True
-        
-        self.pyttsx3_available = False
-        self.pyttsx3_engine = None
+        self.has_espeak_cli = shutil.which("espeak") is not None
 
         if self.enabled:
-            try:
-                import pyttsx3
-                self.pyttsx3_engine = pyttsx3.init()
-                self.pyttsx3_engine.setProperty("rate", config.TTS_SPEECH_RATE)
-                self.pyttsx3_available = True
-            except Exception as e:
-                # pyttsx3 might fail on some Linux/Pi environments if ALSA/espeak is not linked
-                self.pyttsx3_available = False
-
-            # Check if system espeak CLI exists as fallback on Linux / Raspberry Pi
-            self.has_espeak_cli = shutil.which("espeak") is not None
-
             # Start background worker thread
             self.thread = threading.Thread(target=self._worker, daemon=True)
             self.thread.start()
 
     def speak(self, text: str, force: bool = False):
         """Queue text to be spoken asynchronously if cooldown has passed."""
-        if not self.enabled or not text:
+        if not self.enabled or not text or text in ["WAITING...", "NO HAND"]:
             return
 
         now = time.time()
@@ -58,24 +44,51 @@ class TTSEngine:
         self.queue.put(text)
 
     def _worker(self):
+        # Initialize pyttsx3 inside the worker thread to satisfy Windows COM STA threading rules
+        pyttsx3_engine = None
+        try:
+            import pyttsx3
+            pyttsx3_engine = pyttsx3.init()
+            pyttsx3_engine.setProperty("rate", config.TTS_SPEECH_RATE)
+        except Exception:
+            pyttsx3_engine = None
+
         while self.running:
             try:
                 text = self.queue.get(timeout=0.2)
             except queue.Empty:
                 continue
 
-            try:
-                if self.pyttsx3_available and self.pyttsx3_engine is not None:
-                    self.pyttsx3_engine.say(text)
-                    self.pyttsx3_engine.runAndWait()
-                elif self.has_espeak_cli:
+            print(f"[VOICE ANNOUNCEMENT]: {text}")
+            spoken = False
+
+            # 1. Try pyttsx3 engine
+            if pyttsx3_engine is not None:
+                try:
+                    pyttsx3_engine.say(text)
+                    pyttsx3_engine.runAndWait()
+                    spoken = True
+                except Exception:
+                    pass
+
+            # 2. Windows native PowerShell SpeechSynthesizer fallback
+            if not spoken and sys.platform.startswith("win"):
+                try:
+                    cmd = f'powershell -Command "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak(\'{text}\')"'
+                    subprocess.run(cmd, shell=True, check=False)
+                    spoken = True
+                except Exception:
+                    pass
+
+            # 3. Linux / Raspberry Pi espeak fallback
+            if not spoken and self.has_espeak_cli:
+                try:
                     subprocess.run(["espeak", "-s", str(config.TTS_SPEECH_RATE), text], check=False)
-                else:
-                    print(f"[TTS Output]: {text}")
-            except Exception as err:
-                print(f"[TTS Error]: {err}")
-            finally:
-                self.queue.task_done()
+                    spoken = True
+                except Exception:
+                    pass
+
+            self.queue.task_done()
 
     def close(self):
         self.running = False
