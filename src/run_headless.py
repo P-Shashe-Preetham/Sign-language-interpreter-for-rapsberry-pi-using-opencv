@@ -172,11 +172,13 @@ def main():
             features, bbox, hand_landmarks = tracker.process_frame(frame)
             tracker.draw_landmarks(frame, hand_landmarks)
 
+            raw_pred_text = ""
             if features is not None:
                 probs = classifier.predict_proba([features])[0]
                 best_idx = np.argmax(probs)
                 best_confidence = probs[best_idx]
                 predicted_label = label_encoder.classes_[best_idx]
+                raw_pred_text = f"Live: {predicted_label} ({best_confidence*100:.0f}%)"
 
                 if best_confidence >= config.CONFIDENCE_THRESHOLD:
                     prediction_buffer.append(predicted_label)
@@ -187,7 +189,7 @@ def main():
                 if valid_preds:
                     from collections import Counter
                     most_common, count = Counter(valid_preds).most_common(1)[0]
-                    if count >= (config.SMOOTHING_BUFFER_SIZE * 0.6):
+                    if count >= (config.SMOOTHING_BUFFER_SIZE * 0.5):
                         if most_common != last_confirmed_sign:
                             last_confirmed_sign = most_common
                             last_confidence = best_confidence
@@ -195,12 +197,17 @@ def main():
                             print(f"\r>>> RECOGNIZED SIGN: {last_confirmed_sign} ({last_confidence*100:.1f}%) | FPS: {fps:.1f}", end="", flush=True)
                         else:
                             last_confidence = best_confidence
+                elif last_confirmed_sign == "NO HAND":
+                    last_confirmed_sign = "WAITING..."
 
                 if bbox is not None:
                     x1, y1, x2, y2 = bbox
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cv2.putText(frame, f"{last_confirmed_sign} ({last_confidence*100:.0f}%)",
-                                (x1, max(25, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                    is_confident = last_confidence >= config.CONFIDENCE_THRESHOLD
+                    box_color = (0, 255, 0) if is_confident else (0, 165, 255)
+                    display_text = f"{last_confirmed_sign}" if is_confident else f"{predicted_label} ({best_confidence*100:.0f}%)"
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2)
+                    cv2.putText(frame, display_text,
+                                (x1, max(25, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, box_color, 2)
             else:
                 prediction_buffer.clear()
                 if last_confirmed_sign != "NO HAND":
@@ -212,8 +219,12 @@ def main():
             text_color = (0, 255, 0) if last_confirmed_sign not in ["WAITING...", "NO HAND"] else (180, 180, 180)
             cv2.putText(frame, f"SIGN: {last_confirmed_sign}", (15, 45),
                         cv2.FONT_HERSHEY_DUPLEX, 1.1, text_color, 2)
-            cv2.putText(frame, f"Confidence: {last_confidence*100:.1f}% | FPS: {fps:.1f}", (15, 68),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
+            status_line = f"Confidence: {last_confidence*100:.0f}%"
+            if raw_pred_text:
+                status_line += f" | {raw_pred_text}"
+            status_line += f" | FPS: {fps:.1f}"
+            cv2.putText(frame, status_line, (15, 68),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.52, (200, 200, 200), 1)
 
             # Compress for web stream
             _, encoded = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])

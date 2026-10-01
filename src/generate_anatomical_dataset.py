@@ -379,22 +379,28 @@ def generate_anatomical_dataset(samples_per_class: int = 150):
     for sign in config.SIGNS:
         base_coords = get_pose_for_sign(sign)
         
-        for _ in range(samples_per_class):
+        for _ in range(samples_per_class // 2):
             # 1. Realistic hand rotation perturbations
-            # Yaw (+- 18 deg), Pitch (+- 15 deg), Roll (+- 20 deg)
-            ax = np.random.uniform(-np.radians(15), np.radians(15))
-            ay = np.random.uniform(-np.radians(18), np.radians(18))
-            az = np.random.uniform(-np.radians(20), np.radians(20))
+            # Yaw (+- 20 deg), Pitch (+- 18 deg), Roll (+- 25 deg)
+            ax = np.random.uniform(-np.radians(18), np.radians(18))
+            ay = np.random.uniform(-np.radians(20), np.radians(20))
+            az = np.random.uniform(-np.radians(25), np.radians(25))
             rotated = rotate_3d(base_coords.copy(), ax, ay, az)
 
             # 2. Individual joint flexion noise (slight biological variations)
-            joint_jitter = np.random.normal(0, 0.015, rotated.shape)
+            joint_jitter = np.random.normal(0, 0.02, rotated.shape)
             joint_jitter[0] = 0.0 # Keep wrist anchored
             perturbed = rotated + joint_jitter
 
-            # 3. MediaPipe normalization
-            feat_vector = normalize_coords(perturbed)
-            rows.append([sign] + list(feat_vector))
+            # 3. Right hand sample
+            feat_right = normalize_coords(perturbed)
+            rows.append([sign] + list(feat_right))
+
+            # 4. Left hand / Mirrored sample (negate X coordinate)
+            mirrored = perturbed.copy()
+            mirrored[:, 0] = -mirrored[:, 0]
+            feat_left = normalize_coords(mirrored)
+            rows.append([sign] + list(feat_left))
 
     # Save to landmarks.csv
     with open(config.CSV_PATH, "w", newline="", encoding="utf-8") as f:

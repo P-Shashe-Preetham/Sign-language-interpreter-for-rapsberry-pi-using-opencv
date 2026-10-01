@@ -94,12 +94,12 @@ FPS_TARGET = 30
 
 # MediaPipe Hand Tracking Parameters
 MAX_NUM_HANDS = 1
-MIN_DETECTION_CONFIDENCE = 0.7
-MIN_TRACKING_CONFIDENCE = 0.6
+MIN_DETECTION_CONFIDENCE = 0.5
+MIN_TRACKING_CONFIDENCE = 0.5
 
 # Classification & Temporal Smoothing Parameters
-CONFIDENCE_THRESHOLD = 0.75
-SMOOTHING_BUFFER_SIZE = 5      # Consecutive frames needed to stabilize prediction
+CONFIDENCE_THRESHOLD = 0.40    # Tuned for responsive 33-class inference
+SMOOTHING_BUFFER_SIZE = 3      # Consecutive frames needed to stabilize prediction
 SPEECH_COOLDOWN_SECONDS = 2.0  # Avoid repeated speaking of the same sign
 
 # Text-to-Speech Settings
